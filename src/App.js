@@ -10,7 +10,7 @@ import Button from 'react-bootstrap/Button';
 
 import { metaboss_testdata, GAMEDATA } from './exampleData.js';
 
-const PHASES = ["infiltration", "analysis", "assault"];
+const PHASE_SLUGS = ["infiltration", "analysis", "assault"];
 const MAX_MATCH_COUNT = 3;
 const MAX_ROUND_COUNT = 8;
 
@@ -23,10 +23,12 @@ const STRATEGY_CHECK = {
 };
 
 var flecTeamNames = { rogue: "rogue", sage: "sage", armr: "armr" };
+var conflictTeams = { infiltration: "", analysis: "", combat: "" }
 
 function InitGameData() {
 	_.forIn(GAMEDATA.flec, function (value, key) {
 		flecTeamNames[value.slug] = value.name;
+		conflictTeams[value.conflict] = value.slug;
 	});
 }
 
@@ -98,30 +100,44 @@ function displayRounds(rounds) {
 	for (let i = 0; i < MAX_ROUND_COUNT; i++) {
 		let roundNum = (i + 1).toString();
 
-		if (rounds[roundNum] === undefined) {
-			break;
+		if (rounds !== null && rounds[roundNum] !== undefined) {
+			resultArray[i] = rounds[roundNum];
 		}
-
-		resultArray[i] = rounds[roundNum];
+		else {
+			resultArray[i] = null;
+		}
 	}
 
 	return resultArray.map((round, index) => {
-		const HIGHLIGHT = "font-weight-bold";
-		let markup = { winner: { flec: "", skirge: "" }, strategy_winner: { flec: "", skirge: "" } };
+		let content = (
+			<>
+			</>
+		);
 
-		markup.winner[round.winner] = HIGHLIGHT;
-		markup.strategy_winner[round._strategy_winner] = HIGHLIGHT;
+		if (round != null) {
+			const HIGHLIGHT = "font-weight-bold";
+			let markup = { winner: { flec: "", skirge: "" }, strategy_winner: { flec: "", skirge: "" } };
+
+			markup.winner[round.winner] = HIGHLIGHT;
+			markup.strategy_winner[round._strategy_winner] = HIGHLIGHT;
+
+			content = (
+				<>
+					<td>{round.winner}</td>
+					<td className={markup.winner.flec}>{round.flec_score}</td>
+					<td className={markup.winner.skirge}>{round.skirge_score}</td>
+					<td className={markup.strategy_winner.flec}>{round.flec_strategy_vote}</td>
+					<td className={markup.strategy_winner.skirge}>{round.skirge_strategy_vote}</td>
+					<td>{round.flec_action}</td>
+					<td>{round.skirge_action}</td>
+				</>
+			);
+		}
 
 		return (
 			<tr key={index}>
 				<td>{index + 1}</td>
-				<td>{round.winner}</td>
-				<td className={markup.winner.flec}>{round.flec_score}</td>
-				<td className={markup.winner.skirge}>{round.skirge_score}</td>
-				<td className={markup.strategy_winner.flec}>{round.flec_strategy_vote}</td>
-				<td className={markup.strategy_winner.skirge}>{round.skirge_strategy_vote}</td>
-				<td>{round.flec_action}</td>
-				<td>{round.skirge_action}</td>
+				{content}
 			</tr>
 		)
 	});
@@ -150,16 +166,16 @@ function Match(props) {
 }
 
 function Phase(props) {
-	const HIGHLIGHT = "font-weight-bold";
 	let content = [];
 
 	for (let i = 0; i < MAX_MATCH_COUNT; i++) {
+		const HIGHLIGHT = "font-weight-bold";
 		let matchNum = (i + 1).toString();
+		let buttonMarkup;
 
-		if (props.matches[matchNum] !== undefined) {
+		if (props.matches !== null && props.matches[matchNum] !== undefined) {
 			let result = props.results[matchNum];
 			let markup = { winner: { flec: "", skirge: "" } };
-			let buttonMarkup = "";
 
 			if ((result.flec_round_wins + result.skirge_round_wins) === MAX_ROUND_COUNT) {
 				buttonMarkup = (result.winner === "flec") ? "success" : "danger";
@@ -175,8 +191,8 @@ function Phase(props) {
 						<Card.Header>
 							<Accordion.Toggle as={Button} variant={buttonMarkup} eventKey={i.toString()}>
 								<span className={markup.winner.flec}>{flecTeamNames[result.flec_team]} {result.flec_round_wins}</span>
-								&nbsp;-&nbsp;
-								<span className={markup.winner.skirge}> {result.skirge_round_wins} Skirge</span>
+									&nbsp;-&nbsp;
+									<span className={markup.winner.skirge}>{result.skirge_round_wins} Skirge</span>
 							</Accordion.Toggle>
 						</Card.Header>
 						<Accordion.Collapse eventKey={i.toString()}>
@@ -189,7 +205,24 @@ function Phase(props) {
 			);
 		}
 		else {
-			break;
+			buttonMarkup = "secondary";
+
+			content[i] = (
+				<React.Fragment key={i}>
+					<Card>
+						<Card.Header>
+							<Accordion.Toggle as={Button} variant={buttonMarkup} eventKey={i.toString()}>
+								{flecTeamNames[conflictTeams[props.phaseSlug]]} v Skirge
+								</Accordion.Toggle>
+						</Card.Header>
+						<Accordion.Collapse eventKey={i.toString()}>
+							<Card.Body>
+								<Match rounds={null} />
+							</Card.Body>
+						</Accordion.Collapse>
+					</Card>
+				</React.Fragment>
+			);
 		}
 	}
 
@@ -203,19 +236,24 @@ function Phase(props) {
 function Episode(props) {
 	let content = [];
 
-	for (let i = 0; i < PHASES.length; i++) {
-		let phaseName = PHASES[i];
+	for (let i = 0; i < PHASE_SLUGS.length; i++) {
+		let phaseSlug = PHASE_SLUGS[i];
 
-		if (props.data.outcomes[phaseName] !== undefined) {
+		if (props.data.outcomes[phaseSlug] !== undefined) {
 			content[i] = (
-				<React.Fragment key={PHASES[i]}>
+				<React.Fragment key={PHASE_SLUGS[i]}>
 					<h3>{GAMEDATA.conflicts[i.toString()].name}</h3>
-					<Phase matches={props.data.outcomes[phaseName]} results={props.data.results.match[phaseName]} />
+					<Phase matches={props.data.outcomes[phaseSlug]} results={props.data.results.match[phaseSlug]} phaseSlug={phaseSlug} />
 				</React.Fragment>
 			);
 		}
 		else {
-			break;
+			content[i] = (
+				<React.Fragment key={PHASE_SLUGS[i]}>
+					<h3>{GAMEDATA.conflicts[i.toString()].name}</h3>
+					<Phase matches={null} results={props.data.results.match[phaseSlug]} phaseSlug={phaseSlug} />
+				</React.Fragment>
+			);
 		}
 	}
 
