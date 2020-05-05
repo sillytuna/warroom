@@ -8,28 +8,29 @@ import Table from 'react-bootstrap/Table';
 
 import { metaboss_testdata, GAMEDATA } from './exampleData.js';
 
-function strategyResult(a, b) {
-		const STRATEGY_CHECK = {
-				"-": 			{"-": null, "Fire": false, "Snow": false, "Water": false},
-				"Fire":		{"-": true, "Fire": null, "Snow": true, "Water": false},
-				"Snow":		{"-": true, "Fire": false, "Snow": null, "Water": true},
-				"Water":	{"-": true, "Fire": true, "Snow": false, "Water": null}
-		};
+const PHASES = [ "infiltration", "analysis", "assault" ];
+const MAX_MATCH_COUNT = 3;
+const MAX_ROUND_COUNT = 8;
 
+const STRATEGIES = ["Fire", "Snow", "Water"];
+const STRATEGY_CHECK = {
+		"-": 			{ "-": null, "Fire": false, "Snow": false, "Water": false },
+		"Fire":		{ "-": true, "Fire": null, "Snow": true, "Water": false },
+		"Snow":		{ "-": true, "Fire": false, "Snow": null, "Water": true },
+		"Water":	{ "-": true, "Fire": true, "Snow": false, "Water": null }
+};
+
+
+function strategyResult(a, b) {
 		return STRATEGY_CHECK[a][b];
 }
 
 function listResults(results) {
 		let resultArray = [];
-		const MAX_ROUND_COUNT = 64;
-
-//		_.forIn(results, function(value, key) {
-//				resultArray[key] = value;
-//		});
 
 		for (let i = 0; i < MAX_ROUND_COUNT; i++) {
 				let round_num = (i+1).toString();
-				console.log(results[round_num]);
+
 				if (results[round_num] === undefined) {
 						break;
 				}
@@ -45,7 +46,7 @@ function listResults(results) {
 				markup.strategy_winner[round._strategy_winner] = HIGHLIGHT;
 
 				return (
-					<tr>
+					<tr key={index}>
 							<td>{index + 1}</td>
 							<td>{round.winner}</td>
 							<td className={markup.winner.flec}>{round.flec_score}</td>
@@ -62,7 +63,6 @@ function listResults(results) {
 function ProcessResults(data) {
 	let outcomes = data.outcomes;
 
-	const STRATEGIES = ["Fire", "Snow", "Water"];
 	let nameStrategy = (s) => (s != null) ? STRATEGIES[s]: "-";
 
 		const TEAM_ACTIONS = {
@@ -144,17 +144,16 @@ function Match(props) {
 
 function Phase(props) {
 	let content = [];
-	const MAX_MATCH_COUNT = 32;
 
 	for (let i = 0; i < MAX_MATCH_COUNT; i++) {
 		let match_num = (i+1).toString();
 
 		if (props.phase[match_num] !== undefined) {
 				content[i] = (
-					<>
+					<React.Fragment key={i}>
 						<h4>Match {match_num}</h4>
 						<Match match={props.phase[match_num]} />
-					</>
+					</React.Fragment>
 				);
 		}
 		else {
@@ -170,7 +169,6 @@ function Phase(props) {
 }
 
 function Episode(props) {
-	const PHASES = [ "infiltration", "analysis", "assault"];
 	let content = [];
 
 	for (let i = 0; i < PHASES.length; i++) {
@@ -178,10 +176,10 @@ function Episode(props) {
 
 		if (props.episode[phase_name] !== undefined) {
 			content[i] = (
-				<>
+				<React.Fragment key={PHASES[i]}>
 					<h3>Phase {phase_name}</h3>
 					<Phase phase={props.episode[phase_name]} />
-				</>
+				</React.Fragment>
 			);
 		}
 		else {
