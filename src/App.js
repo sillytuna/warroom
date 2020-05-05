@@ -20,23 +20,33 @@ function strategyResult(a, b) {
 }
 
 function listResults(results) {
-		// Get keys into an array
 		let resultArray = [];
+		const MAX_ROUND_COUNT = 64;
 
-		_.forIn(results['1'], function(value, key) {
-				resultArray[key] = value;
-		});
+//		_.forIn(results, function(value, key) {
+//				resultArray[key] = value;
+//		});
+
+		for (let i = 0; i < MAX_ROUND_COUNT; i++) {
+				let round_num = (i+1).toString();
+				console.log(results[round_num]);
+				if (results[round_num] === undefined) {
+						break;
+				}
+
+				resultArray[i] = results[round_num];
+		}
 
 		return resultArray.map((round, index) => {
 				const HIGHLIGHT = "font-weight-bold";
 				let markup = { winner: { flec: "", skirge: ""}, strategy_winner: { flec: "", skirge: ""} };
 
-				(round._winner === "flec") ? markup.winner.flec = HIGHLIGHT : markup.winner.skirge = HIGHLIGHT;
-				(round._strategy_winner === "flec") ? markup.strategy_winner.flec = HIGHLIGHT : markup.strategy_winner.skirge = HIGHLIGHT;
+				markup.winner[round.winner] = HIGHLIGHT;
+				markup.strategy_winner[round._strategy_winner] = HIGHLIGHT;
 
 				return (
 					<tr>
-							<td>{index}</td>
+							<td>{index + 1}</td>
 							<td>{round.winner}</td>
 							<td className={markup.winner.flec}>{round.flec_score}</td>
 							<td className={markup.winner.skirge}>{round.skirge_score}</td>
@@ -95,8 +105,6 @@ function ProcessResults(data) {
 						round.skirge_action = nameAction("skirge", round.skirge_action);
 
 						// Add extra metadata
-						(round.flec_score > round.skirge_score) ? round._winner = "flec" : round._winner = "skirge";
-
 						let result = strategyResult(round.flec_strategy_vote, round.skirge_strategy_vote);
 						if (result === true)
 								round._strategy_winner = "flec";
@@ -110,7 +118,7 @@ function ProcessResults(data) {
 	});
 }
 
-function Episode(props) {
+function Match(props) {
 	return (
 		<div>
 			<Table striped bordered variant="dark">
@@ -127,9 +135,63 @@ function Episode(props) {
 					</tr>
 				</thead>
 				<tbody>
-					{listResults(props.outcomes.infiltration)}
+					{listResults(props.match)}
 				</tbody>
 			</Table>
+		</div>
+	);
+}
+
+function Phase(props) {
+	let content = [];
+	const MAX_MATCH_COUNT = 32;
+
+	for (let i = 0; i < MAX_MATCH_COUNT; i++) {
+		let match_num = (i+1).toString();
+
+		if (props.phase[match_num] !== undefined) {
+				content[i] = (
+					<>
+						<h4>Match {match_num}</h4>
+						<Match match={props.phase[match_num]} />
+					</>
+				);
+		}
+		else {
+				break;
+		}
+	}
+
+	return (
+		<div>
+			{content}
+		</div>
+	);
+}
+
+function Episode(props) {
+	const PHASES = [ "infiltration", "analysis", "assault"];
+	let content = [];
+
+	for (let i = 0; i < PHASES.length; i++) {
+		let phase_name = PHASES[i];
+
+		if (props.episode[phase_name] !== undefined) {
+			content[i] = (
+				<>
+					<h3>Phase {phase_name}</h3>
+					<Phase phase={props.episode[phase_name]} />
+				</>
+			);
+		}
+		else {
+				break;
+		}
+	}
+
+	return (
+		<div>
+			{content}
 		</div>
 	);
 }
@@ -138,8 +200,9 @@ function App() {
 	ProcessResults(metaboss_testdata.data);
 
 	return (
-		<Container>
-			<Episode outcomes={metaboss_testdata.data.outcomes} />
+		<Container fluid>
+			<h1>MetaBoss War Room: {metaboss_testdata.data.params.episode}</h1>
+			<Episode episode={metaboss_testdata.data.outcomes} />
 		</Container>
 	);
 }
