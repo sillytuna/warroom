@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import _ from 'lodash';
 
@@ -7,12 +7,21 @@ import Table from 'react-bootstrap/Table';
 import Card from 'react-bootstrap/Card';
 import Accordion from 'react-bootstrap/Accordion';
 import Button from 'react-bootstrap/Button';
+import Badge from 'react-bootstrap/Badge';
 
-import { metaboss_testdata, GAMEDATA } from './exampleData.js';
+import { EPISODE_INCOMPLETE, gGameDefs } from './exampleData.js';
+
+// ------------------------------------------------------------------------------------------------------//
+
+// Game definitions
+var gMatchesPerShowdown;
+var gRoundsPerMatch;
+//var gEpisodesPerSeason;
+
+var gFlecTeamNames = { rogue: "rogue", sage: "sage", armr: "armr" };
+var gConflictTeams = { infiltration: "", analysis: "", combat: "" }
 
 const PHASE_SLUGS = ["infiltration", "analysis", "assault"];
-const MAX_MATCH_COUNT = 3;
-const MAX_ROUND_COUNT = 8;
 
 const STRATEGIES = ["Fire", "Snow", "Water"];
 const STRATEGY_CHECK = {
@@ -22,72 +31,79 @@ const STRATEGY_CHECK = {
 	"Water": { "-": true, "Fire": true, "Snow": false, "Water": null }
 };
 
-var flecTeamNames = { rogue: "rogue", sage: "sage", armr: "armr" };
-var conflictTeams = { infiltration: "", analysis: "", combat: "" }
+var gTeamActions;
 
-function InitGameData() {
-	_.forIn(GAMEDATA.flec, function (value, key) {
-		flecTeamNames[value.slug] = value.name;
-		conflictTeams[value.conflict] = value.slug;
-	});
-}
+// ------------------------------------------------------------------------------------------------------//
 
-function ProcessResults(data) {
-	let outcomes = data.outcomes;
-
-	let nameStrategy = (s) => (s != null) ? STRATEGIES[s] : "-";
-
-	const TEAM_ACTIONS = {
+function InitGameDefs() {
+	gTeamActions = {
 		skirge: {
-			'0': GAMEDATA.actions.skirge['0'].name,
-			'1': GAMEDATA.actions.skirge['1'].name,
-			'2': GAMEDATA.actions.skirge['2'].name,
-			'3': GAMEDATA.actions.skirge['3'].name,
+			'0': gGameDefs.actions.skirge['0'].name,
+			'1': gGameDefs.actions.skirge['1'].name,
+			'2': gGameDefs.actions.skirge['2'].name,
+			'3': gGameDefs.actions.skirge['3'].name,
 		},
 		rogue: {
-			'0': GAMEDATA.actions.rogue['0'].name,
-			'1': GAMEDATA.actions.rogue['1'].name,
-			'2': GAMEDATA.actions.rogue['2'].name,
-			'3': GAMEDATA.actions.rogue['3'].name,
+			'0': gGameDefs.actions.rogue['0'].name,
+			'1': gGameDefs.actions.rogue['1'].name,
+			'2': gGameDefs.actions.rogue['2'].name,
+			'3': gGameDefs.actions.rogue['3'].name,
 		},
 		sage: {
-			'0': GAMEDATA.actions.sage['0'].name,
-			'1': GAMEDATA.actions.sage['1'].name,
-			'2': GAMEDATA.actions.sage['2'].name,
-			'3': GAMEDATA.actions.sage['3'].name,
+			'0': gGameDefs.actions.sage['0'].name,
+			'1': gGameDefs.actions.sage['1'].name,
+			'2': gGameDefs.actions.sage['2'].name,
+			'3': gGameDefs.actions.sage['3'].name,
 		},
 		armr: {
-			'0': GAMEDATA.actions.armr['0'].name,
-			'1': GAMEDATA.actions.armr['1'].name,
-			'2': GAMEDATA.actions.armr['2'].name,
-			'3': GAMEDATA.actions.armr['3'].name,
+			'0': gGameDefs.actions.armr['0'].name,
+			'1': gGameDefs.actions.armr['1'].name,
+			'2': gGameDefs.actions.armr['2'].name,
+			'3': gGameDefs.actions.armr['3'].name,
 		}
 	};
 
-	let nameAction = (team, s) => (s != null) ? TEAM_ACTIONS[team][s] : "-";
+	_.forIn(gGameDefs.flec, function (value, key) {
+		gFlecTeamNames[value.slug] = value.name;
+		gConflictTeams[value.conflict] = value.slug;
+	});
 
-	_.forIn(outcomes, function (phase, key) {
-		_.forIn(phase, function (match, key) {
-			_.forIn(match, function (round, key) {
-				// Make sense of the results
-				round.flec_strategy_vote = nameStrategy(round.flec_strategy_vote);
-				round.skirge_strategy_vote = nameStrategy(round.skirge_strategy_vote);
+	gMatchesPerShowdown = gGameDefs.matchesPerShowdown;
+	gRoundsPerMatch = gGameDefs.roundsPerMatch;
+	//gEpisodesPerSeason = GAMEDATA.episodesPerSeason;
+}
 
-				round.flec_action = nameAction(round.flec_faction, round.flec_action);
-				round.skirge_action = nameAction("skirge", round.skirge_action);
+function ProcessResults(episodeData) {
+	if (!episodeData.processed) {
+		let outcomes = episodeData.outcomes;
+		let nameStrategy = (s) => (s != null) ? STRATEGIES[s] : "-";
+		let nameAction = (team, s) => (s != null) ? gTeamActions[team][s] : "-";
 
-				// Add extra metadata
-				let result = strategyResult(round.flec_strategy_vote, round.skirge_strategy_vote);
-				if (result === true)
-					round._strategy_winner = "flec";
-				else if (result === false)
-					round._strategy_winner = "skirge";
-				else
-					round._strategy_winner = null;
+		_.forIn(outcomes, function (phase, key) {
+			_.forIn(phase, function (match, key) {
+				_.forIn(match, function (round, key) {
+					// Make sense of the results
+					round.flec_strategy_vote = nameStrategy(round.flec_strategy_vote);
+					round.skirge_strategy_vote = nameStrategy(round.skirge_strategy_vote);
 
+					round.flec_action = nameAction(round.flec_faction, round.flec_action);
+					round.skirge_action = nameAction("skirge", round.skirge_action);
+
+					// Add extra metadata
+					let result = strategyResult(round.flec_strategy_vote, round.skirge_strategy_vote);
+					if (result === true)
+						round._strategy_winner = "flec";
+					else if (result === false)
+						round._strategy_winner = "skirge";
+					else
+						round._strategy_winner = null;
+
+				});
 			});
 		});
-	});
+	}
+
+	episodeData.processed = true;
 }
 
 function strategyResult(a, b) {
@@ -97,7 +113,7 @@ function strategyResult(a, b) {
 function displayRounds(rounds) {
 	let resultArray = [];
 
-	for (let i = 0; i < MAX_ROUND_COUNT; i++) {
+	for (let i = 0; i < gRoundsPerMatch; i++) {
 		let roundNum = (i + 1).toString();
 
 		if (rounds !== null && rounds[roundNum] !== undefined) {
@@ -143,6 +159,33 @@ function displayRounds(rounds) {
 	});
 }
 
+// ------------------------------------------------------------------------------------------------------//
+
+function LoadingButton(props) {
+	const [isLoading, setLoading] = useState(false);
+	const onLoad = useRef(props.onLoad);
+
+	useEffect(() => {
+		if (isLoading) {
+			onLoad.current().then(() => {
+				setLoading(false);
+			});
+		}
+	}, [isLoading]);
+
+	function handleClick() {
+		setLoading(true);
+	}
+
+	return (
+		<Button variant={props.variant} disabled={isLoading} onClick={!isLoading ? handleClick : null} >
+			{isLoading ? 'Loading…' : props.label}
+		</Button>
+	);
+}
+
+// ------------------------------------------------------------------------------------------------------//
+
 function Match(props) {
 	return (
 		<Table striped bordered variant="dark">
@@ -168,7 +211,7 @@ function Match(props) {
 function Phase(props) {
 	let content = [];
 
-	for (let i = 0; i < MAX_MATCH_COUNT; i++) {
+	for (let i = 0; i < gMatchesPerShowdown; i++) {
 		const HIGHLIGHT = "font-weight-bold";
 		let matchNum = (i + 1).toString();
 		let buttonMarkup;
@@ -177,7 +220,7 @@ function Phase(props) {
 			let result = props.results[matchNum];
 			let markup = { winner: { flec: "", skirge: "" } };
 
-			if ((result.flec_round_wins + result.skirge_round_wins) === MAX_ROUND_COUNT) {
+			if ((result.flec_round_wins + result.skirge_round_wins) === gRoundsPerMatch) {
 				buttonMarkup = (result.winner === "flec") ? "success" : "danger";
 				markup.winner[result.winner] = HIGHLIGHT;
 			}
@@ -190,7 +233,7 @@ function Phase(props) {
 					<Card>
 						<Card.Header>
 							<Accordion.Toggle as={Button} variant={buttonMarkup} eventKey={i.toString()}>
-								<span className={markup.winner.flec}>{flecTeamNames[result.flec_team]} {result.flec_round_wins}</span>
+								<span className={markup.winner.flec}>{gFlecTeamNames[result.flec_team]} {result.flec_round_wins}</span>
 									&nbsp;-&nbsp;
 									<span className={markup.winner.skirge}>{result.skirge_round_wins} Skirge</span>
 							</Accordion.Toggle>
@@ -212,7 +255,7 @@ function Phase(props) {
 					<Card>
 						<Card.Header>
 							<Accordion.Toggle as={Button} variant={buttonMarkup} eventKey={i.toString()}>
-								{flecTeamNames[conflictTeams[props.phaseSlug]]} v Skirge
+								{gFlecTeamNames[gConflictTeams[props.phaseSlug]]} v Skirge
 								</Accordion.Toggle>
 						</Card.Header>
 						<Accordion.Collapse eventKey={i.toString()}>
@@ -239,19 +282,19 @@ function Episode(props) {
 	for (let i = 0; i < PHASE_SLUGS.length; i++) {
 		let phaseSlug = PHASE_SLUGS[i];
 
-		if (props.data.outcomes[phaseSlug] !== undefined) {
+		if (props.episodeData.outcomes[phaseSlug] !== undefined) {
 			content[i] = (
 				<React.Fragment key={PHASE_SLUGS[i]}>
-					<h3>{GAMEDATA.conflicts[i.toString()].name}</h3>
-					<Phase matches={props.data.outcomes[phaseSlug]} results={props.data.results.match[phaseSlug]} phaseSlug={phaseSlug} />
+					<h3>{gGameDefs.conflicts[i.toString()].name}</h3>
+					<Phase matches={props.episodeData.outcomes[phaseSlug]} results={props.episodeData.results.match[phaseSlug]} phaseSlug={phaseSlug} />
 				</React.Fragment>
 			);
 		}
 		else {
 			content[i] = (
 				<React.Fragment key={PHASE_SLUGS[i]}>
-					<h3>{GAMEDATA.conflicts[i.toString()].name}</h3>
-					<Phase matches={null} results={props.data.results.match[phaseSlug]} phaseSlug={phaseSlug} />
+					<h3>{gGameDefs.conflicts[i.toString()].name}</h3>
+					<Phase matches={null} results={props.episodeData.results.match[phaseSlug]} phaseSlug={phaseSlug} />
 				</React.Fragment>
 			);
 		}
@@ -264,14 +307,79 @@ function Episode(props) {
 	);
 }
 
-function App() {
-	InitGameData();
-	ProcessResults(metaboss_testdata.data);
+function Game(props) {
+	var content = "";
+	var episode = "...";
+
+	if (props.episodeData !== null) {
+		ProcessResults(props.episodeData);
+		episode = props.episodeData.params.episode;
+
+		content = (
+			<>
+				<Episode episodeData={props.episodeData} />
+			</>
+		);
+	}
 
 	return (
 		<Container fluid>
-			<h1>MetaBoss War Room: {metaboss_testdata.data.params.episode}</h1>
-			<Episode data={metaboss_testdata.data} />
+			<h1>MetaBoss War Room: {episode}</h1>
+			{content}
+		</Container>
+	);
+}
+
+function App() {
+	InitGameDefs();
+
+	const [episodeData, setEpisodeData] = useState(null)
+
+	async function loadTestData() {
+		// Forces a UX refresh with no data which resets the accordions
+		setEpisodeData(null);
+		await new Promise(resolve => setTimeout(resolve, 1));
+
+		EPISODE_INCOMPLETE.data.testData = true;
+		setEpisodeData(EPISODE_INCOMPLETE.data);
+
+		return true;
+	}
+
+	async function loadRealData() {
+		setEpisodeData(null);
+
+		await fetch('https://metaboss.blockade.games/api/get-stats?episode=s01e01')
+			.then(res => res.json())
+			.then((loadedData) => {
+				setEpisodeData(loadedData.data);
+			})
+			.catch(console.log)
+
+		return true;
+	}
+
+	useEffect(() => {
+		loadRealData();
+	}, []);
+
+	let testData;
+	if (episodeData && episodeData.testData) {
+		testData = (
+			<>
+				<Badge variant="danger">Test Mode!</Badge>
+			</>
+		);
+	}
+
+	return (
+		<Container fluid>
+			<p></p>
+			<LoadingButton variant="primary" onLoad={loadRealData} label="Live Data" />&nbsp;
+			<LoadingButton variant="primary" onLoad={loadTestData} label="Test Data" />
+			&nbsp;{testData}&nbsp;
+			<p></p>
+			<Game episodeData={episodeData} />
 		</Container>
 	);
 }
