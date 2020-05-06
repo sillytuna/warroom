@@ -362,7 +362,7 @@ function App() {
 	async function loadRealData() {
 		setEpisodeData(null);
 
-		await fetch('https://metaboss.blockade.games/api/get-stats?episode=s01e01')
+		await fetch('https://metaboss.blockade.games/api/get-stats?episode=s01e02')
 			.then(res => res.json())
 			.then((loadedData) => {
 				setEpisodeData(loadedData.data);
