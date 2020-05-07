@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useContext } from 'react';
-import Box from '@material-ui/core/Box';
+import React, { useState, useEffect, useContext, makeStyles } from 'react';
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Table from '@material-ui/core/Table';
+import Tabs from '@material-ui/core/Tabs';
+import Tab from '@material-ui/core/Tab';
+import AppBar from '@material-ui/core/AppBar';
+import Box from '@material-ui/core/Box';
 
+import TabPanel from './TabPanel';
 import { GameConfigContext } from './App.js';
-//import GameConfig from './GameConfig';
-//import gameDefs from './gameDefs.js';
 
 //import Table from 'react-bootstrap/Table';
 // import Card from 'react-bootstrap/Card';
@@ -151,40 +153,53 @@ function Phase(props) {
 
 function Episode(props) {
 	const gameConfig = useContext(GameConfigContext);
+	const [value, setValue] = React.useState(0);
+
+	const handleChange = (event, newValue) => {
+		setValue(newValue);
+	};
+
+	let titles = [];
 	let content = [];
+	let matchElement;
 
 	for (let i = 0; i < gameConfig.phaseSlugs.length; i++) {
 		let phaseSlug = gameConfig.phaseSlugs[i];
 
 		if (props.episodeData.outcomes[phaseSlug] !== undefined) {
-			content[i] = (
-				<React.Fragment key={gameConfig.phaseSlugs[i]}>
-					<h3>{gameConfig.gameDefs.conflicts[i.toString()].name}</h3>
-					<Phase matches={props.episodeData.outcomes[phaseSlug]} results={props.episodeData.results.match[phaseSlug]} phaseSlug={phaseSlug} />
-				</React.Fragment>
-			);
+			matchElement = <Phase matches={props.episodeData.outcomes[phaseSlug]} results={props.episodeData.results.match[phaseSlug]} phaseSlug={phaseSlug} />;
 		}
 		else {
-			content[i] = (
-				<React.Fragment key={gameConfig.phaseSlugs[i]}>
-					<h3>{gameConfig.gameDefs.conflicts[i.toString()].name}</h3>
-					<Phase matches={null} results={props.episodeData.results.match[phaseSlug]} phaseSlug={phaseSlug} />
-				</React.Fragment>
-			);
+			matchElement = <Phase matches={null} results={props.episodeData.results.match[phaseSlug]} phaseSlug={phaseSlug} />;
 		}
+
+		titles[i] = (
+			<Tab label={gameConfig.gameDefs.conflicts[i.toString()].name} id={gameConfig.phaseSlugs[i]} />
+		);
+
+		content[i] = (
+			<TabPanel value={value} index={i}>
+				{matchElement}
+			</TabPanel>
+		);
 	}
 
 	return (
-		<div>
+		<>
+			<AppBar position="static">
+				<Tabs value={value} onChange={handleChange}>
+					{titles}
+				</Tabs>
+			</AppBar>
 			{content}
-		</div>
+		</>
 	);
 }
 
 function ResultsPage(props) {
 	const gameConfig = useContext(GameConfigContext);
 
-	var content = "temp";
+	let content;
 
 	if (props.episodeData !== null) {
 		gameConfig.ProcessResults(props.episodeData);
@@ -193,7 +208,7 @@ function ResultsPage(props) {
 	}
 
 	return (
-		<Box m={2}>
+		<Box mt={2}>
 			{content}
 		</Box>
 	);

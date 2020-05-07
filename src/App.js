@@ -44,8 +44,8 @@ function App() {
 	}, []);
 
 	return (
-		<Container maxWidth="lg">
-			<Box mt={1}>
+		<Box p={2} bgcolor="#FAFAFA" maxWidth="lg">
+			<Container maxWidth="lg">
 				<Grid container spacing={2}>
 					<Grid item>
 						<Badge color="secondary" variant="dot" invisible={episodeData && episodeData._exampleEpisode}>
@@ -58,11 +58,11 @@ function App() {
 						</Badge>
 					</Grid>
 				</Grid>
-			</Box>
-			<GameConfigContext.Provider value={gameConfig}>
-				<ResultsPage episodeData={episodeData} />
-			</GameConfigContext.Provider>
-		</Container >
+				<GameConfigContext.Provider value={gameConfig}>
+					<ResultsPage episodeData={episodeData} />
+				</GameConfigContext.Provider>
+			</Container >
+		</Box>
 	);
 }
 
