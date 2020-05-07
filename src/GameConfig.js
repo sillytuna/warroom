@@ -5,9 +5,9 @@ import exampleEpisodes from './exampleEpisodes.js';
 const STRATEGIES = ["Fire", "Snow", "Water"];
 const STRATEGY_COMPARE = {
 	"-": { "-": null, "Fire": false, "Snow": false, "Water": false },
-	"Fire": { "-": true, "Fire": null, "Snow": true, "Water": false },
-	"Snow": { "-": true, "Fire": false, "Snow": null, "Water": true },
-	"Water": { "-": true, "Fire": true, "Snow": false, "Water": null }
+	"Fire": { "-": true, "Fire": null, "Snow": false, "Water": true },
+	"Snow": { "-": true, "Fire": true, "Snow": null, "Water": false },
+	"Water": { "-": true, "Fire": false, "Snow": true, "Water": null }
 };
 
 export default class GameConfig {
