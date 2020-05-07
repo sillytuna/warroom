@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import _ from 'lodash';
 //import clsx from 'clsx';
 
@@ -6,169 +6,23 @@ import Container from '@material-ui/core/Container';
 import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
-// import Table from 'react-bootstrap/Table';
+import GameConfig from './GameConfig';
+import gameDefs from './gameDefs.js';
+
+//import Table from 'react-bootstrap/Table';
 // import Card from 'react-bootstrap/Card';
 // import Accordion from 'react-bootstrap/Accordion';
 // import Badge from 'react-bootstrap/Badge';
 
-import { EPISODE_INCOMPLETE, gGameDefs } from './exampleData.js';
-
 // ------------------------------------------------------------------------------------------------------//
 
-// Game definitions
-var gMatchesPerShowdown;
-var gRoundsPerMatch;
-//var gEpisodesPerSeason;
+const GameConfigContext = React.createContext();
 
-var gFlecTeamNames = { rogue: "rogue", sage: "sage", armr: "armr" };
-var gConflictTeams = { infiltration: "", analysis: "", combat: "" }
-
-const PHASE_SLUGS = ["infiltration", "analysis", "assault"];
-
-const STRATEGIES = ["Fire", "Snow", "Water"];
-const STRATEGY_CHECK = {
-	"-": { "-": null, "Fire": false, "Snow": false, "Water": false },
-	"Fire": { "-": true, "Fire": null, "Snow": true, "Water": false },
-	"Snow": { "-": true, "Fire": false, "Snow": null, "Water": true },
-	"Water": { "-": true, "Fire": true, "Snow": false, "Water": null }
-};
-
-var gTeamActions;
-
-// ------------------------------------------------------------------------------------------------------//
-
-const useStyles = makeStyles({
+const useStyles = makeStyles((theme) => ({
 	winStyle: {
 		fontWeight: 'bold'
 	}
-});
-
-// ------------------------------------------------------------------------------------------------------//
-
-function InitGameDefs() {
-	gTeamActions = {
-		skirge: {
-			'0': gGameDefs.actions.skirge['0'].name,
-			'1': gGameDefs.actions.skirge['1'].name,
-			'2': gGameDefs.actions.skirge['2'].name,
-			'3': gGameDefs.actions.skirge['3'].name,
-		},
-		rogue: {
-			'0': gGameDefs.actions.rogue['0'].name,
-			'1': gGameDefs.actions.rogue['1'].name,
-			'2': gGameDefs.actions.rogue['2'].name,
-			'3': gGameDefs.actions.rogue['3'].name,
-		},
-		sage: {
-			'0': gGameDefs.actions.sage['0'].name,
-			'1': gGameDefs.actions.sage['1'].name,
-			'2': gGameDefs.actions.sage['2'].name,
-			'3': gGameDefs.actions.sage['3'].name,
-		},
-		armr: {
-			'0': gGameDefs.actions.armr['0'].name,
-			'1': gGameDefs.actions.armr['1'].name,
-			'2': gGameDefs.actions.armr['2'].name,
-			'3': gGameDefs.actions.armr['3'].name,
-		}
-	};
-
-	_.forIn(gGameDefs.flec, function (value, key) {
-		gFlecTeamNames[value.slug] = value.name;
-		gConflictTeams[value.conflict] = value.slug;
-	});
-
-	gMatchesPerShowdown = gGameDefs.matchesPerShowdown;
-	gRoundsPerMatch = gGameDefs.roundsPerMatch;
-	//gEpisodesPerSeason = GAMEDATA.episodesPerSeason;
-}
-
-function ProcessResults(episodeData) {
-	if (!episodeData.processed) {
-		let outcomes = episodeData.outcomes;
-		let nameStrategy = (s) => (s != null) ? STRATEGIES[s] : "-";
-		let nameAction = (team, s) => (s != null) ? gTeamActions[team][s] : "-";
-
-		_.forIn(outcomes, function (phase, key) {
-			_.forIn(phase, function (match, key) {
-				_.forIn(match, function (round, key) {
-					// Make sense of the results
-					///////////TODO: Move these to custom keys, don't overwrite!
-					round.flec_strategy_vote = nameStrategy(round.flec_strategy_vote);
-					round.skirge_strategy_vote = nameStrategy(round.skirge_strategy_vote);
-
-					round.flec_action = nameAction(round.flec_faction, round.flec_action);
-					round.skirge_action = nameAction("skirge", round.skirge_action);
-
-					// Add extra metadata
-					let result = strategyResult(round.flec_strategy_vote, round.skirge_strategy_vote);
-					if (result === true)
-						round._strategy_winner = "flec";
-					else if (result === false)
-						round._strategy_winner = "skirge";
-					else
-						round._strategy_winner = null;
-
-				});
-			});
-		});
-	}
-
-	episodeData.processed = true;
-}
-
-function strategyResult(a, b) {
-	return STRATEGY_CHECK[a][b];
-}
-
-function displayRounds(rounds) {
-	let resultArray = [];
-
-	for (let i = 0; i < gRoundsPerMatch; i++) {
-		let roundNum = (i + 1).toString();
-
-		if (rounds !== null && rounds[roundNum] !== undefined) {
-			resultArray[i] = rounds[roundNum];
-		}
-		else {
-			resultArray[i] = null;
-		}
-	}
-
-	return resultArray.map((round, index) => {
-		let content = (
-			<>
-			</>
-		);
-
-		if (round != null) {
-			const HIGHLIGHT = "font-weight-bold";
-			let markup = { winner: { flec: "", skirge: "" }, strategy_winner: { flec: "", skirge: "" } };
-
-			markup.winner[round.winner] = HIGHLIGHT;
-			markup.strategy_winner[round._strategy_winner] = HIGHLIGHT;
-
-			content = (
-				<>
-					<td>{round.winner}</td>
-					<td className={markup.winner.flec}>{round.flec_score}</td>
-					<td className={markup.winner.skirge}>{round.skirge_score}</td>
-					<td className={markup.strategy_winner.flec}>{round.flec_strategy_vote}</td>
-					<td className={markup.strategy_winner.skirge}>{round.skirge_strategy_vote}</td>
-					<td>{round.flec_action}</td>
-					<td>{round.skirge_action}</td>
-				</>
-			);
-		}
-
-		return (
-			<tr key={index}>
-				<td>{index + 1}</td>
-				{content}
-			</tr>
-		)
-	});
-}
+}));
 
 // ------------------------------------------------------------------------------------------------------//
 
@@ -195,11 +49,62 @@ function displayRounds(rounds) {
 // 	);
 // }
 
-// // ------------------------------------------------------------------------------------------------------//
+// ------------------------------------------------------------------------------------------------------//
+
+// function displayRounds(gameConfig, rounds) {
+// 	let resultArray = [];
+
+// 	for (let i = 0; i < gameConfig.roundsPerMatch; i++) {
+// 		let roundNum = (i + 1).toString();
+
+// 		if (rounds !== null && rounds[roundNum] !== undefined) {
+// 			resultArray[i] = rounds[roundNum];
+// 		}
+// 		else {
+// 			resultArray[i] = null;
+// 		}
+// 	}
+
+// 	return resultArray.map((round, index) => {
+// 		let content = (
+// 			<>
+// 			</>
+// 		);
+
+// 		if (round != null) {
+// 			const HIGHLIGHT = "font-weight-bold";
+// 			let markup = { winner: { flec: "", skirge: "" }, strategy_winner: { flec: "", skirge: "" } };
+
+// 			markup.winner[round.winner] = HIGHLIGHT;
+// 			markup.strategy_winner[round._strategy_winner] = HIGHLIGHT;
+
+// 			content = (
+// 				<>
+// 					<td>{round.winner}</td>
+// 					<td className={markup.winner.flec}>{round.flec_score}</td>
+// 					<td className={markup.winner.skirge}>{round.skirge_score}</td>
+// 					<td className={markup.strategy_winner.flec}>{round._flec_strategy_vote}</td>
+// 					<td className={markup.strategy_winner.skirge}>{round._skirge_strategy_vote}</td>
+// 					<td>{round._flec_action}</td>
+// 					<td>{round._skirge_action}</td>
+// 				</>
+// 			);
+// 		}
+
+// 		return (
+// 			<tr key={index}>
+// 				<td>{index + 1}</td>
+// 				{content}
+// 			</tr>
+// 		)
+// 	});
+// }
 
 // function Match(props) {
+// 	const gameConfig = useContext(GameConfigContext);
+
 // 	return (
-// 		<Table striped bordered variant="dark">
+// 		<Table>
 // 			<thead>
 // 				<tr>
 // 					<th>#</th>
@@ -213,16 +118,17 @@ function displayRounds(rounds) {
 // 				</tr>
 // 			</thead>
 // 			<tbody>
-// 				{displayRounds(props.rounds)}
+// 				{displayRounds(gameConfig, props.rounds)}
 // 			</tbody>
 // 		</Table>
 // 	);
 // }
 
 // function Phase(props) {
+// 	const gameConfig = useContext(GameConfigContext);
 // 	let content = [];
 
-// 	for (let i = 0; i < gMatchesPerShowdown; i++) {
+// 	for (let i = 0; i < gameConfig.matchesPerShowdown; i++) {
 // 		const HIGHLIGHT = "font-weight-bold";
 // 		let matchNum = (i + 1).toString();
 // 		let buttonMarkup;
@@ -231,7 +137,7 @@ function displayRounds(rounds) {
 // 			let result = props.results[matchNum];
 // 			let markup = { winner: { flec: "", skirge: "" } };
 
-// 			if ((result.flec_round_wins + result.skirge_round_wins) === gRoundsPerMatch) {
+// 			if ((result.flec_round_wins + result.skirge_round_wins) === gameConfig.roundsPerMatch) {
 // 				buttonMarkup = (result.winner === "flec") ? "success" : "danger";
 // 				markup.winner[result.winner] = HIGHLIGHT;
 // 			}
@@ -244,7 +150,7 @@ function displayRounds(rounds) {
 // 					<Card>
 // 						<Card.Header>
 // 							<Accordion.Toggle as={Button} variant={buttonMarkup} eventKey={i.toString()}>
-// 								<span className={markup.winner.flec}>{gFlecTeamNames[result.flec_team]} {result.flec_round_wins}</span>
+// 								<span className={markup.winner.flec}>{gameConfig.flecTeamNames[result.flec_team]} {result.flec_round_wins}</span>
 // 									&nbsp;-&nbsp;
 // 									<span className={markup.winner.skirge}>{result.skirge_round_wins} Skirge</span>
 // 							</Accordion.Toggle>
@@ -266,7 +172,7 @@ function displayRounds(rounds) {
 // 					<Card>
 // 						<Card.Header>
 // 							<Accordion.Toggle as={Button} variant={buttonMarkup} eventKey={i.toString()}>
-// 								{gFlecTeamNames[gConflictTeams[props.phaseSlug]]} v Skirge
+// 								{gameConfig.flecTeamNames[gameConfig.conflictTeams[props.phaseSlug]]} v Skirge
 // 								</Accordion.Toggle>
 // 						</Card.Header>
 // 						<Accordion.Collapse eventKey={i.toString()}>
@@ -288,23 +194,24 @@ function displayRounds(rounds) {
 // }
 
 // function Episode(props) {
+// 	const gameConfig = useContext(GameConfigContext);
 // 	let content = [];
 
-// 	for (let i = 0; i < PHASE_SLUGS.length; i++) {
-// 		let phaseSlug = PHASE_SLUGS[i];
+// 	for (let i = 0; i < gameConfig.phaseSlugs.length; i++) {
+// 		let phaseSlug = gameConfig.phaseSlugs[i];
 
 // 		if (props.episodeData.outcomes[phaseSlug] !== undefined) {
 // 			content[i] = (
-// 				<React.Fragment key={PHASE_SLUGS[i]}>
-// 					<h3>{gGameDefs.conflicts[i.toString()].name}</h3>
+// 				<React.Fragment key={gameConfig.phaseSlugs[i]}>
+// 					<h3>{gameConfig.gameDefs.conflicts[i.toString()].name}</h3>
 // 					<Phase matches={props.episodeData.outcomes[phaseSlug]} results={props.episodeData.results.match[phaseSlug]} phaseSlug={phaseSlug} />
 // 				</React.Fragment>
 // 			);
 // 		}
 // 		else {
 // 			content[i] = (
-// 				<React.Fragment key={PHASE_SLUGS[i]}>
-// 					<h3>{gGameDefs.conflicts[i.toString()].name}</h3>
+// 				<React.Fragment key={gameConfig.phaseSlugs[i]}>
+// 					<h3>{gameConfig.gameDefs.conflicts[i.toString()].name}</h3>
 // 					<Phase matches={null} results={props.episodeData.results.match[phaseSlug]} phaseSlug={phaseSlug} />
 // 				</React.Fragment>
 // 			);
@@ -341,25 +248,24 @@ function displayRounds(rounds) {
 // 	);
 // }
 
+//TODO: Move code out of this function as it's called for every render!
 function App() {
 	const classes = useStyles();
-
-	InitGameDefs();
-
 	const [episodeData, setEpisodeData] = useState(null)
+	const [gameConfig, setGameConfig] = useState(null)
 
-	async function loadTestData() {
-		// Forces a UX refresh with no data which resets the accordions
+	async function loadExampleData() {
+		// Forces a UX refresh which resets any expansions
 		setEpisodeData(null);
-		await new Promise(resolve => setTimeout(resolve, 1));
 
-		EPISODE_INCOMPLETE.data.testData = true;
-		setEpisodeData(EPISODE_INCOMPLETE.data);
+		await new Promise(resolve => setTimeout(resolve, 1));
+		setEpisodeData(gameConfig.exampleEpisodes[0].data);
 
 		return true;
 	}
 
-	async function loadRealData() {
+	async function loadLiveData() {
+		// Forces a UX refresh which resets any expansions
 		setEpisodeData(null);
 
 		await fetch('https://metaboss.blockade.games/api/get-stats?episode=s01e02')
@@ -373,15 +279,18 @@ function App() {
 		return true;
 	}
 
+	// This will only be called once
 	useEffect(() => {
-		loadRealData();
+		setGameConfig(new GameConfig(gameDefs));
+		loadLiveData();
 	}, []);
 
-	// let testData;
-	// if (episodeData && episodeData.testData) {
-	// 	testData = (
+
+	// let exampleEpisodes;
+	// if (episodeData && episodeData._exampleEpisode) {
+	// 	exampleMode = (
 	// 		<>
-	// 			<Badge variant="danger">Test Mode!</Badge>
+	// 			<Badge variant="danger">Example Mode!</Badge>
 	// 		</>
 	// 	);
 	// }
@@ -389,11 +298,13 @@ function App() {
 	return (
 		<Container maxWidth="lg">
 			{/*			<p></p>
-			<LoadingButton variant="primary" onLoad={loadRealData} label="Live Data" />&nbsp;
-			<LoadingButton variant="primary" onLoad={loadTestData} label="Test Data" />
-			&nbsp;{testData}&nbsp;
+			<LoadingButton variant="primary" onLoad={loadLiveData} label="Live Data" />&nbsp;
+			<LoadingButton variant="primary" onLoad={loadExampleData} label="Example Data" />
+			&nbsp;{exampleMode}&nbsp;
 			<p></p>
-			<Game episodeData={episodeData} />
+			<GameConfigContext.Provider value={gameConfig}>
+				<Game episodeData={episodeData} />
+			</GameConfigContext.Provider>
 			*/}
 			<Typography className={classes.winStyle} variant="h1" color="primary">
 				Test
