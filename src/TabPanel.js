@@ -6,11 +6,7 @@ export default function TabPanel(props) {
 	const { children, value, index, ...other } = props;
 
 	return (
-		<div
-			hidden={value !== index}
-			id={`simple-tabpanel-${index}`}
-			{...other}
-		>
+		<div hidden={value !== index} id={`simple-tabpanel-${index}`} {...other}>
 			{value === index && (
 				<Box>
 					<Typography>{children}</Typography>

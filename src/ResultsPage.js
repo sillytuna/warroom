@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useContext, makeStyles } from 'react';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import React, { useState, useContext } from 'react';
 import Table from '@material-ui/core/Table';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import AppBar from '@material-ui/core/AppBar';
 import Box from '@material-ui/core/Box';
+import Grid from '@material-ui/core/Box';
 
 import TabPanel from './TabPanel';
 import { GameConfigContext } from './App.js';
@@ -112,42 +109,34 @@ function Phase(props) {
 			}
 
 			content[i] = (
-				<React.Fragment key={i}>
-					<ExpansionPanel>
-						<ExpansionPanelSummary expandIcon={<ExpandMoreIcon />} id={i.toString()}>
-							<span className={markup.winner.flec}>{gameConfig.flecTeamNames[result.flec_team]} {result.flec_round_wins}</span>
-							{" - "}
-							<span className={markup.winner.skirge}>{result.skirge_round_wins} Skirge</span>
-						</ExpansionPanelSummary>
-						<ExpansionPanelDetails>
-							<Match rounds={props.matches[matchNum]} />
-						</ExpansionPanelDetails>
-					</ExpansionPanel>
-				</React.Fragment>
+				<Box mt={2}>
+					<Box bgcolor="#999999" p={1}>
+						<span className={markup.winner.flec}>{gameConfig.flecTeamNames[result.flec_team]} {result.flec_round_wins}</span>
+						{" - "}
+						<span className={markup.winner.skirge}>{result.skirge_round_wins} Skirge</span>
+					</Box>
+					<Match rounds={props.matches[matchNum]} />
+				</Box>
 			);
 		}
 		else {
 			buttonMarkup = "secondary";
 
 			content[i] = (
-				<React.Fragment key={i}>
-					<ExpansionPanel>
-						<ExpansionPanelSummary expandIcon={<ExpandMoreIcon />} id={i.toString()}>
-							{gameConfig.flecTeamNames[gameConfig.conflictTeams[props.phaseSlug]]} v Skirge
-						</ExpansionPanelSummary>
-						<ExpansionPanelDetails>
-							<Match rounds={null} />
-						</ExpansionPanelDetails>
-					</ExpansionPanel>
-				</React.Fragment >
+				<Box mt={2}>
+					<Box bgcolor="#999999" p={1}>
+						{gameConfig.flecTeamNames[gameConfig.conflictTeams[props.phaseSlug]]} v Skirge
+					</Box>
+					<Match rounds={null} />
+				</Box>
 			);
 		}
 	}
 
 	return (
-		<>
+		<Box mt={1}>
 			{content}
-		</>
+		</Box>
 	);
 }
 

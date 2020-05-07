@@ -44,7 +44,7 @@ function App() {
 	}, []);
 
 	return (
-		<Box p={2} bgcolor="#FAFAFA" maxWidth="lg">
+		<Box bgcolor="#FAFAFA">
 			<Container maxWidth="lg">
 				<Grid container spacing={2}>
 					<Grid item>
